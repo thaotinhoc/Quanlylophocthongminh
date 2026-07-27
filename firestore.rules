@@ -1,0 +1,36 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Cho phép đọc/ghi dữ liệu danh mục lớp học & học sinh
+    match /classrooms/{classId} {
+      allow read, write: if true;
+    }
+
+    match /students/{studentId} {
+      allow read, write: if true;
+    }
+
+    match /study_links/{linkId} {
+      allow read, write: if true;
+    }
+
+    match /learning_games/{gameId} {
+      allow read, write: if true;
+    }
+
+    match /grade_history/{historyId} {
+      allow read, write: if true;
+    }
+
+    match /exam_papers/{examId} {
+      allow read, write: if true;
+    }
+
+    // Khóa tất cả các đường dẫn dữ liệu khác không thuộc ứng dụng
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
