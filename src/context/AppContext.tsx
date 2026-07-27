@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import authorImg from "../assets/author.jpg";
 import { Classroom, Student, StudyLink, LearningGame, GradeHistory, ExamPaper, TeacherProfile } from "../types";
 import { 
   initialClassrooms, 
@@ -148,14 +149,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ...parsed,
         name: "Bùi Thanh Thảo",
         school: "Trường TIỂU HỌC KHẮC NIỆM",
-        avatarUrl: "/author.jpg"
+        avatarUrl: parsed.avatarUrl || authorImg
       };
     }
     return {
       name: "Bùi Thanh Thảo",
       subject: "Tin học & Công nghệ",
       school: "Trường TIỂU HỌC KHẮC NIỆM",
-      avatarUrl: "/author.jpg"
+      avatarUrl: authorImg
     };
   });
 

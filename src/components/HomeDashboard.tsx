@@ -1,13 +1,16 @@
 import React, { useState } from "react";
 import { useApp } from "../context/AppContext";
+import authorImg from "../assets/author.jpg";
+import EditProfileModal from "./EditProfileModal";
 import { 
   Users, GraduationCap, Globe, Clock, Sparkles, Star, Award, 
-  ChevronRight, BrainCircuit, Play, ArrowRight, CheckCircle2, Heart, Shield, Loader2
+  ChevronRight, BrainCircuit, Play, ArrowRight, CheckCircle2, Heart, Shield, Loader2, Camera
 } from "lucide-react";
 import { motion } from "motion/react";
 
 export default function HomeDashboard() {
-  const { students, classrooms, studyLinks, gradeHistory, setActiveTab, setSelectedClassId } = useApp();
+  const { students, classrooms, studyLinks, gradeHistory, setActiveTab, setSelectedClassId, teacherProfile } = useApp();
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [examTopic, setExamTopic] = useState("Lập trình trắc nghiệm Python");
   const [examDifficulty, setExamDifficulty] = useState("Trung bình");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -70,19 +73,36 @@ export default function HomeDashboard() {
 
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative z-10">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <img 
-              src="/author.jpg" 
-              alt="Cô giáo Bùi Thanh Thảo"
-              className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover ring-4 ring-white/30 shadow-xl shrink-0"
-              referrerPolicy="no-referrer"
-            />
+            <div 
+              onClick={() => setIsEditProfileOpen(true)}
+              className="relative group cursor-pointer shrink-0"
+              title="Bấm vào đây để tải ảnh đại diện mới"
+            >
+              <img 
+                src={teacherProfile?.avatarUrl || authorImg} 
+                alt="Cô giáo Bùi Thanh Thảo"
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover ring-4 ring-white/30 shadow-xl group-hover:brightness-90 transition-all"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = authorImg;
+                }}
+              />
+              <div className="absolute inset-0 rounded-2xl bg-slate-900/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white font-bold text-[10px]">
+                <Camera size={18} className="mb-0.5 text-amber-300" />
+                <span>Đổi ảnh</span>
+              </div>
+              <div className="absolute -bottom-1.5 -right-1.5 bg-amber-400 text-slate-950 p-1 rounded-lg shadow-md border border-white flex items-center gap-0.5 text-[9px] font-black">
+                <Camera size={10} />
+              </div>
+            </div>
+
             <div className="space-y-1.5">
               <span className="inline-flex items-center gap-1 bg-white/20 text-white font-bold text-[10px] px-2.5 py-0.5 rounded-lg uppercase tracking-wider">
                 <Sparkles size={11} />
                 AI-Powered Workspace
               </span>
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight">
-                Chào ngày mới, cô Bùi Thanh Thảo!
+                Chào ngày mới, cô {teacherProfile?.name || "Bùi Thanh Thảo"}!
               </h1>
               <p className="text-indigo-100 text-xs sm:text-sm max-w-xl leading-relaxed">
                 Chào mừng cô đến với trợ lý giảng dạy Tin học & Công nghệ thông minh. Hôm nay cô muốn chấm điểm nhanh trên lớp hay thiết kế bài kiểm tra bằng AI?
@@ -329,6 +349,11 @@ export default function HomeDashboard() {
           </div>
         </div>
       </div>
+
+      <EditProfileModal
+        isOpen={isEditProfileOpen}
+        onClose={() => setIsEditProfileOpen(false)}
+      />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { AppProvider, useApp } from "./context/AppContext";
+import authorImg from "./assets/author.jpg";
 import Sidebar from "./components/Sidebar";
 import HomeDashboard from "./components/HomeDashboard";
 import ClassroomManager from "./components/ClassroomManager";
@@ -10,18 +11,20 @@ import LinkWarehouse from "./components/LinkWarehouse";
 import ClassStats from "./components/ClassStats";
 import Leaderboard from "./components/Leaderboard";
 import AIGame from "./components/AIGame";
+import EditProfileModal from "./components/EditProfileModal";
 
 import { 
   Sun, Moon, Menu, X, Sparkles, GraduationCap, Users, Award, 
   Clock, Globe, Trophy, Play, Home, Star, Link as LinkIcon, Activity, FileSpreadsheet, 
-  LogIn, LogOut, KeyRound, Lock, Eye, EyeOff, ShieldCheck, User, CheckCircle2, School
+  LogIn, LogOut, KeyRound, Lock, Eye, EyeOff, ShieldCheck, User, CheckCircle2, School, Camera
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 function AppContent() {
-  const { activeTab, setActiveTab, isLoggedIn, loginWithPin, logout } = useApp();
+  const { activeTab, setActiveTab, isLoggedIn, loginWithPin, logout, teacherProfile } = useApp();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
 
   // Login Modal State
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -288,16 +291,29 @@ function AppContent() {
             <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
               
               {/* Thông tin Tác giả & Ảnh đại diện nhỏ gọn */}
-              <div className="flex items-center gap-3">
-                <img 
-                  src="/author.jpg" 
-                  alt="Tác giả Cô giáo Bùi Thanh Thảo"
-                  className="w-9 h-9 rounded-full object-cover ring-2 ring-indigo-500/30 shadow-sm shrink-0"
-                  referrerPolicy="no-referrer"
-                />
+              <div 
+                onClick={() => setIsEditProfileOpen(true)}
+                className="flex items-center gap-3 cursor-pointer group hover:bg-slate-100 dark:hover:bg-slate-800/60 p-1.5 rounded-2xl transition-all"
+                title="Bấm để đổi ảnh đại diện tác giả"
+              >
+                <div className="relative shrink-0">
+                  <img 
+                    src={teacherProfile?.avatarUrl || authorImg} 
+                    alt="Tác giả Cô giáo Bùi Thanh Thảo"
+                    className="w-9 h-9 rounded-full object-cover ring-2 ring-indigo-500/30 shadow-sm group-hover:ring-indigo-500/60 transition-all"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = authorImg;
+                    }}
+                  />
+                  <div className="absolute -bottom-1 -right-1 bg-indigo-600 text-white p-0.5 rounded-full ring-1 ring-white">
+                    <Camera size={9} />
+                  </div>
+                </div>
                 <div>
-                  <div className="text-xs font-extrabold text-slate-800 dark:text-slate-200">
-                    Tác giả: Cô giáo Bùi Thanh Thảo
+                  <div className="text-xs font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-1">
+                    <span>Tác giả: Cô giáo {teacherProfile?.name || "Bùi Thanh Thảo"}</span>
+                    <span className="text-[9px] text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-50 dark:bg-indigo-950 px-1.5 py-0.2 rounded-full border border-indigo-200 dark:border-indigo-800">Đổi ảnh</span>
                   </div>
                   <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                     Phần mềm Quản lý lớp học thân yêu
@@ -334,12 +350,19 @@ function AppContent() {
 
               {/* Author Header */}
               <div className="text-center space-y-3 mb-6">
-                <div className="relative inline-block">
+                <div 
+                  className="relative inline-block cursor-pointer group"
+                  onClick={() => setIsEditProfileOpen(true)}
+                  title="Bấm để đổi ảnh đại diện"
+                >
                   <img 
-                    src="/author.jpg" 
+                    src={teacherProfile?.avatarUrl || authorImg} 
                     alt="Tác giả Cô giáo Bùi Thanh Thảo" 
-                    className="w-20 h-20 rounded-full object-cover mx-auto ring-4 ring-indigo-500/40 shadow-lg"
+                    className="w-20 h-20 rounded-full object-cover mx-auto ring-4 ring-indigo-500/40 shadow-lg group-hover:brightness-90 transition-all"
                     referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = authorImg;
+                    }}
                   />
                   <div className="absolute -bottom-1 -right-1 bg-amber-500 text-slate-950 p-1.5 rounded-full border-2 border-white dark:border-[#151c2e]">
                     <ShieldCheck size={14} />
@@ -351,10 +374,10 @@ function AppContent() {
                     BẢN QUYỀN TÁC GIẢ
                   </div>
                   <h2 className="text-xl font-black text-slate-900 dark:text-white mt-0.5">
-                    Cô giáo Bùi Thanh Thảo
+                    Cô giáo {teacherProfile?.name || "Bùi Thanh Thảo"}
                   </h2>
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    Trường Tiểu Học Khắc Niệm - TP. Bắc Ninh
+                    {teacherProfile?.school || "Trường Tiểu Học Khắc Niệm - TP. Bắc Ninh"}
                   </p>
                 </div>
               </div>
@@ -416,6 +439,11 @@ function AppContent() {
           </div>
         )}
       </AnimatePresence>
+
+      <EditProfileModal
+        isOpen={isEditProfileOpen}
+        onClose={() => setIsEditProfileOpen(false)}
+      />
     </div>
   );
 }

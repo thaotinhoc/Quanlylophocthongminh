@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { useApp } from "../context/AppContext";
+import authorImg from "../assets/author.jpg";
+import EditProfileModal from "./EditProfileModal";
 import { 
   GraduationCap, Users, Star, Trophy, Link as LinkIcon, Activity, FileSpreadsheet, 
-  Sun, Moon
+  Sun, Moon, Camera
 } from "lucide-react";
 
 interface SidebarProps {
@@ -11,7 +13,8 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isDarkMode, setIsDarkMode }: SidebarProps) {
-  const { activeTab, setActiveTab, students } = useApp();
+  const { activeTab, setActiveTab, teacherProfile, students } = useApp();
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
 
   const menuItems = [
     { id: "classroom", label: "Lớp học", icon: Users },
@@ -123,22 +126,35 @@ export default function Sidebar({ isDarkMode, setIsDarkMode }: SidebarProps) {
         </button>
 
         <div className="pt-1">
-          <div className="bg-[#15123d] p-2.5 rounded-xl border border-white/10 flex items-center gap-2">
-            <img 
-              src="/author.jpg" 
-              alt="Tác giả Cô giáo Bùi Thanh Thảo"
-              className="w-9 h-9 rounded-full object-cover ring-2 ring-amber-400/80 shrink-0"
-              referrerPolicy="no-referrer"
-            />
+          <div 
+            onClick={() => setIsEditProfileOpen(true)}
+            className="bg-[#15123d] hover:bg-[#201c56] cursor-pointer p-2.5 rounded-xl border border-white/10 flex items-center gap-2 group transition-all"
+            title="Bấm để đổi ảnh đại diện hoặc cập nhật thông tin tác giả"
+          >
+            <div className="relative shrink-0">
+              <img 
+                src={teacherProfile?.avatarUrl || authorImg} 
+                alt="Tác giả Cô giáo Bùi Thanh Thảo"
+                className="w-9 h-9 rounded-full object-cover ring-2 ring-amber-400/80 group-hover:ring-amber-300 transition-all"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = authorImg;
+                }}
+              />
+              <div className="absolute -bottom-1 -right-1 bg-indigo-600 text-white p-0.5 rounded-full ring-1 ring-white/20 opacity-90 group-hover:scale-110 transition-transform">
+                <Camera size={10} />
+              </div>
+            </div>
             <div className="min-w-0 flex-1">
-              <div className="text-[9px] font-extrabold text-amber-300 uppercase tracking-wider truncate">
-                Tác giả (Bản quyền)
+              <div className="text-[9px] font-extrabold text-amber-300 uppercase tracking-wider truncate flex items-center justify-between">
+                <span>Tác giả (Bản quyền)</span>
+                <span className="text-[8px] text-amber-200/80 bg-amber-400/20 px-1 rounded">Đổi ảnh</span>
               </div>
               <div className="text-[11px] font-black text-white truncate">
-                Bùi Thanh Thảo
+                {teacherProfile?.name || "Bùi Thanh Thảo"}
               </div>
               <div className="text-[9px] text-indigo-300 truncate font-medium">
-                TH Khắc Niệm
+                {teacherProfile?.school || "TH Khắc Niệm"}
               </div>
             </div>
           </div>
@@ -149,6 +165,11 @@ export default function Sidebar({ isDarkMode, setIsDarkMode }: SidebarProps) {
           <span>© Bùi Thanh Thảo</span>
         </div>
       </div>
+
+      <EditProfileModal
+        isOpen={isEditProfileOpen}
+        onClose={() => setIsEditProfileOpen(false)}
+      />
     </div>
   );
 }
