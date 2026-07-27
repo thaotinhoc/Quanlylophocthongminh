@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import authorImg from "../assets/author.jpg";
 import { Classroom, Student, StudyLink, LearningGame, GradeHistory, ExamPaper, TeacherProfile } from "../types";
+import { saveToStorage, loadFromStorage } from "../lib/idbStorage";
 import { 
   initialClassrooms, 
   initialStudents, 
@@ -179,13 +180,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem("cl_is_logged_in", "false");
   };
 
-  // Keep localStorage updated with local states as secondary cache
+  // Asynchronously hydrate from IndexedDB on initial mount if available
   useEffect(() => {
-    localStorage.setItem("cl_classrooms", JSON.stringify(classrooms));
+    loadFromStorage<Student[]>("cl_students", []).then(storedStudents => {
+      if (storedStudents && Array.isArray(storedStudents) && storedStudents.length > 0) {
+        setStudents(storedStudents);
+      }
+    }).catch(err => console.warn("Hydrate students from IndexedDB warning:", err));
+  }, []);
+
+  // Keep IndexedDB + localStorage updated with local states
+  useEffect(() => {
+    saveToStorage("cl_classrooms", classrooms);
   }, [classrooms]);
 
   useEffect(() => {
-    localStorage.setItem("cl_students", JSON.stringify(students));
+    saveToStorage("cl_students", students);
     // Keep classrooms studentCount strictly synced with active student count
     setClassrooms(prevClassrooms => {
       let changed = false;
@@ -202,23 +212,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [students]);
 
   useEffect(() => {
-    localStorage.setItem("cl_study_links", JSON.stringify(studyLinks));
+    saveToStorage("cl_study_links", studyLinks);
   }, [studyLinks]);
 
   useEffect(() => {
-    localStorage.setItem("cl_learning_games", JSON.stringify(learningGames));
+    saveToStorage("cl_learning_games", learningGames);
   }, [learningGames]);
 
   useEffect(() => {
-    localStorage.setItem("cl_grade_history", JSON.stringify(gradeHistory));
+    saveToStorage("cl_grade_history", gradeHistory);
   }, [gradeHistory]);
 
   useEffect(() => {
-    localStorage.setItem("cl_exam_papers", JSON.stringify(examPapers));
+    saveToStorage("cl_exam_papers", examPapers);
   }, [examPapers]);
 
   useEffect(() => {
-    localStorage.setItem("cl_teacher_profile", JSON.stringify(teacherProfile));
+    saveToStorage("cl_teacher_profile", teacherProfile);
   }, [teacherProfile]);
 
   const syncWithFirebase = async (silent: boolean = false) => {
@@ -397,7 +407,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateStudent = async (student: Student) => {
-    if (!checkPermission()) return;
     setStudents(prev => {
       const updated = prev.map(s => s.id === student.id ? student : s);
       setClassrooms(prevClassrooms =>
@@ -406,10 +415,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return { ...c, studentCount: activeCount };
         })
       );
+      saveToStorage("cl_students", updated);
       return updated;
     });
 
-    if (isFirebaseEnabled && db) {
+    if (isFirebaseEnabled && db && isLoggedIn) {
       await setDoc(doc(db, "students", student.id), student);
     }
   };

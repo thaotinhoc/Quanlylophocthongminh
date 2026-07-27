@@ -1,10 +1,12 @@
 import React, { useState, useRef } from "react";
 import { useApp } from "../context/AppContext";
 import { Student, Gender } from "../types";
+import { processAndCompressImage } from "../lib/imageUtils";
 import { 
   UserPlus, Search, Edit3, Trash2, Import, FileSpreadsheet, Download,
   AlertTriangle, Filter, Check, X, User, Info, ArrowRightLeft,
-  UserCheck, Camera, Sparkles, Users, RefreshCw, LayoutGrid, List, Plus, LogOut
+  UserCheck, Camera, Sparkles, Users, RefreshCw, LayoutGrid, List, Plus, LogOut,
+  Upload, Loader2, Image as ImageIcon, RotateCcw
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import * as XLSX from "xlsx";
@@ -44,6 +46,8 @@ export default function StudentManager() {
   const [isOpenImportModal, setIsOpenImportModal] = useState(false);
   const [importTargetClassId, setImportTargetClassId] = useState<string>("");
   const [avatarModalStudent, setAvatarModalStudent] = useState<Student | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [transferConfirmId, setTransferConfirmId] = useState<string | null>(null);
@@ -268,21 +272,49 @@ export default function StudentManager() {
     setTransferConfirmId(null);
   };
 
-  // Upload student avatar
+  // Process and upload student avatar with compression
+  const processAvatarFile = async (file: File) => {
+    if (!avatarModalStudent) return;
+    try {
+      setIsUploadingAvatar(true);
+      setAvatarError(null);
+      // Process & compress any image format (JPEG, PNG, HEIC, WEBP, GIF, etc.) to 250x250
+      const compressedDataUrl = await processAndCompressImage(file, 250, 250, 0.8);
+      await updateStudent({
+        ...avatarModalStudent,
+        avatar: compressedDataUrl
+      });
+      setAvatarModalStudent(null);
+    } catch (err: any) {
+      console.error("Lỗi tải ảnh học sinh:", err);
+      setAvatarError(err.message || "Không thể xử lý tệp ảnh này. Vui lòng chọn tệp ảnh khác.");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
   const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && avatarModalStudent) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const result = event.target?.result as string;
-        updateStudent({
-          ...avatarModalStudent,
-          avatar: result
-        });
-        setAvatarModalStudent(null);
-      };
-      reader.readAsDataURL(file);
+    if (file) {
+      processAvatarFile(file);
     }
+    e.target.value = "";
+  };
+
+  const handleAvatarDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      processAvatarFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleClearAvatar = () => {
+    if (!avatarModalStudent) return;
+    updateStudent({
+      ...avatarModalStudent,
+      avatar: undefined
+    });
+    setAvatarModalStudent(null);
   };
 
   // Set preset avatar
@@ -918,6 +950,10 @@ export default function StudentManager() {
                             src={student.avatar}
                             alt={student.name}
                             className="w-12 h-12 rounded-full object-cover ring-2 ring-indigo-500/20"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).onerror = null;
+                              (e.target as HTMLImageElement).src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"><rect width="100%" height="100%" fill="%23f1f5f9"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" font-size="24">${encodeURIComponent(avatarPreset.emoji)}</text></svg>`;
+                            }}
                           />
                         ) : (
                           <div className={`w-12 h-12 rounded-full ${avatarPreset.bg} flex items-center justify-center font-black text-2xl shadow-inner relative`}>
@@ -1027,8 +1063,30 @@ export default function StudentManager() {
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300 text-sm">
                     {filteredStudents.map((s, idx) => (
                       <tr key={s.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                        <td className="py-3 px-4 flex items-center gap-3">
-                          <span className="font-mono text-xs font-bold text-slate-400">{idx + 1}</span>
+                        <td className="py-3 px-4 flex items-center gap-2.5">
+                          <span className="font-mono text-xs font-bold text-slate-400 w-5">{idx + 1}</span>
+                          <button
+                            type="button"
+                            onClick={() => setAvatarModalStudent(s)}
+                            className="relative shrink-0 focus:outline-none group/tblAv"
+                            title="Bấm để thay đổi ảnh đại diện"
+                          >
+                            {s.avatar && s.avatar.length > 4 ? (
+                              <img
+                                src={s.avatar}
+                                alt={s.name}
+                                className="w-8 h-8 rounded-full object-cover ring-1 ring-indigo-200 group-hover/tblAv:ring-indigo-500"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).onerror = null;
+                                  (e.target as HTMLImageElement).src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="100%" height="100%" fill="%23f1f5f9"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" font-size="16">👤</text></svg>`;
+                                }}
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center font-bold text-xs shadow-inner">
+                                {s.avatar && s.avatar.length <= 4 ? s.avatar : "👤"}
+                              </div>
+                            )}
+                          </button>
                           <span className="font-bold text-slate-800 dark:text-slate-100">{s.name}</span>
                         </td>
                         <td className="py-3 px-4 font-mono text-xs font-bold text-slate-500">{s.studentCode}</td>
@@ -1263,43 +1321,108 @@ export default function StudentManager() {
                 <h3 className="text-xl font-black text-[#2D2A72] dark:text-white">Ảnh đại diện học sinh</h3>
                 <p className="text-xs font-bold text-slate-400 mt-0.5">{avatarModalStudent.name}</p>
               </div>
-              <button onClick={() => setAvatarModalStudent(null)} className="p-1.5 text-slate-400 rounded-xl hover:bg-slate-100">
+              <button 
+                type="button"
+                onClick={() => {
+                  setAvatarModalStudent(null);
+                  setAvatarError(null);
+                }} 
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl"
+              >
                 <X size={18} />
               </button>
             </div>
 
-            {/* Upload image button */}
-            <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-dashed border-indigo-200 dark:border-slate-700 text-center space-y-3">
-              <p className="text-xs font-bold text-slate-600 dark:text-slate-300">Tải ảnh chụp thật từ máy tính:</p>
+            {/* Current photo preview if uploaded */}
+            {avatarModalStudent.avatar && avatarModalStudent.avatar.length > 4 && (
+              <div className="p-3 bg-indigo-50/60 dark:bg-indigo-950/30 rounded-2xl border border-indigo-100 dark:border-indigo-900 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={avatarModalStudent.avatar}
+                    alt={avatarModalStudent.name}
+                    className="w-12 h-12 rounded-full object-cover ring-2 ring-indigo-500 shadow-sm"
+                  />
+                  <div>
+                    <span className="text-xs font-extrabold text-[#2D2A72] dark:text-indigo-200 block">Đã có ảnh chụp thật</span>
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">✓ Tự động tối ưu hóa & đã lưu</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleClearAvatar}
+                  className="px-2.5 py-1.5 text-[11px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 rounded-xl border border-rose-200 dark:border-rose-900 transition-all flex items-center gap-1 shrink-0"
+                  title="Xóa ảnh chụp thật và dùng lại linh vật mặc định"
+                >
+                  <RotateCcw size={12} />
+                  <span>Xóa ảnh</span>
+                </button>
+              </div>
+            )}
+
+            {/* Error banner if any */}
+            {avatarError && (
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 rounded-2xl flex items-center gap-2 text-xs text-rose-600 dark:text-rose-300 font-bold">
+                <AlertTriangle size={16} className="shrink-0" />
+                <span>{avatarError}</span>
+              </div>
+            )}
+
+            {/* Upload image drag and drop area */}
+            <div 
+              onDrop={handleAvatarDrop}
+              onDragOver={(e) => e.preventDefault()}
+              className="p-5 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border-2 border-dashed border-indigo-200 dark:border-slate-700 text-center space-y-3 hover:border-indigo-400 transition-all group"
+            >
+              <div className="w-10 h-10 rounded-2xl bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-300 mx-auto flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Upload size={20} />
+              </div>
+              
+              <div>
+                <p className="text-xs font-extrabold text-slate-700 dark:text-slate-200">Tải ảnh chụp thật từ máy tính/điện thoại</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">Kéo thả ảnh vào đây hoặc bấm nút chọn tệp. Chấp nhận tất cả các định dạng ảnh (JPG, PNG, WEBP, HEIC,...)</p>
+              </div>
+
               <button
                 type="button"
+                disabled={isUploadingAvatar}
                 onClick={() => avatarInputRef.current?.click()}
-                className="px-4 py-2 bg-[#554ce4] hover:bg-[#453cd3] text-white font-extrabold text-xs rounded-xl shadow-sm transition-all"
+                className="px-4 py-2.5 bg-[#554ce4] hover:bg-[#453cd3] disabled:opacity-50 text-white font-extrabold text-xs rounded-xl shadow-md transition-all inline-flex items-center gap-2 cursor-pointer active:scale-95"
               >
-                Chọn tệp ảnh...
+                {isUploadingAvatar ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    <span>Đang nén & lưu ảnh...</span>
+                  </>
+                ) : (
+                  <>
+                    <Camera size={15} />
+                    <span>Chọn tệp ảnh từ thiết bị...</span>
+                  </>
+                )}
               </button>
+
               <input
                 type="file"
                 ref={avatarInputRef}
                 onChange={handleAvatarFileChange}
-                accept="image/*"
+                accept="image/*,.png,.jpg,.jpeg,.webp,.gif,.bmp,.heic,.heif"
                 className="hidden"
               />
             </div>
 
             {/* Cute preset emoji avatars */}
             <div>
-              <p className="text-xs font-bold text-slate-400 uppercase mb-2">Hoặc chọn linh vật dễ thương:</p>
+              <p className="text-xs font-bold text-slate-400 uppercase mb-2">Hoặc chọn linh vật biểu cảm dễ thương:</p>
               <div className="grid grid-cols-4 gap-2">
                 {CUTE_AVATARS.map((item, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => handleSetPresetAvatar(item.emoji)}
-                    className="p-3 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-2xl text-2xl transition-all flex flex-col items-center gap-1"
+                    className="p-3 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-2xl text-2xl transition-all flex flex-col items-center gap-1 active:scale-95"
                   >
                     <span>{item.emoji}</span>
-                    <span className="text-[10px] font-bold text-slate-500">{item.name}</span>
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{item.name}</span>
                   </button>
                 ))}
               </div>

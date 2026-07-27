@@ -300,6 +300,10 @@ export default function FastGrader() {
                         src={student.avatar}
                         alt={student.name}
                         className="w-12 h-12 rounded-full object-cover shrink-0 ring-2 ring-indigo-100"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).onerror = null;
+                          (e.target as HTMLImageElement).src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"><rect width="100%" height="100%" fill="%23f1f5f9"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" font-size="24">${encodeURIComponent(avatarPreset.emoji)}</text></svg>`;
+                        }}
                       />
                     ) : (
                       <div className={`w-12 h-12 rounded-full ${avatarPreset.bg} flex items-center justify-center font-black text-2xl shrink-0 shadow-inner`}>
@@ -349,6 +353,10 @@ export default function FastGrader() {
                           src={student.avatar}
                           alt={student.name}
                           className="w-12 h-12 rounded-full object-cover shrink-0 ring-2 ring-indigo-500/20"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).onerror = null;
+                            (e.target as HTMLImageElement).src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"><rect width="100%" height="100%" fill="%23f1f5f9"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" font-size="24">${encodeURIComponent(avatarPreset.emoji)}</text></svg>`;
+                          }}
                         />
                       ) : (
                         <div className={`w-12 h-12 rounded-full ${avatarPreset.bg} flex items-center justify-center font-black text-2xl shrink-0 shadow-inner`}>
